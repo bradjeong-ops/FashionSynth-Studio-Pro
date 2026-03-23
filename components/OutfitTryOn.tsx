@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './Sidebar';
 import { ReferenceUploader } from './ReferenceUploader';
 import { ReferenceImage, GeneratedImage, AppStatus, FashionCategory, ImageResolution, DeepScanType, DeepScanResult } from '../types';
-import { generateFashionImages, analyzeDeepScan, analyzeClothingImage, analyzeBackgroundImage, analyzeColorTone } from '../services/geminiService';
+import { generateFashionImages, analyzeDeepScan, analyzeClothingImage, analyzeBackgroundImage, analyzeColorTone, hasAnyApiKey } from '../services/geminiService';
 import { SNEAKER_DEFINITIONS, IDENTITY_LOCK_INSTRUCTION } from '../constants';
 import { saveImageToLocal, deleteImageFromLocal, deleteMultipleImages } from '../services/localDb';
 import { Download, Wand2, Loader2, AlertCircle, X, ChevronLeft, ChevronRight, ArrowRightLeft, Undo2, Settings2, Sparkles, Timer, Square, MoveHorizontal, Copy, Check, ScanSearch, SplitSquareHorizontal, ZoomIn, Plus, Minus, ImageIcon, User, Camera, Trash2, ArrowUpCircle, RefreshCw, Palette, CloudUpload, CheckSquare, Package, UserCheck, Move, Sun, LayoutGrid, Image as ImageIconLucide } from 'lucide-react';
@@ -879,25 +879,28 @@ Original Context: ${img.prompt}
   const handleGenerate = async () => {
     setErrorMsg(null); setProgress(0); setElapsedTime(0); setSliderPosition(50);
     
-    // Improved API Key Check
-    const customKey = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
-    if (!customKey) {
+    // Improved API Key Check using centralized helper
+    const hasKey = await hasAnyApiKey();
+    if (!hasKey) {
+        if (onOpenKeySelector) { 
+            onOpenKeySelector(); 
+            return; 
+        }
+        
+        // Fallback to AI Studio if available
         const aiStudio = (window as any).aistudio || (window.parent as any).aistudio;
-        if (aiStudio && aiStudio.hasSelectedApiKey) {
+        if (aiStudio && aiStudio.openSelectKey) {
             try {
-                const hasKey = await aiStudio.hasSelectedApiKey();
-                if (!hasKey) {
-                    await aiStudio.openSelectKey();
-                    // If still no key after prompt, return
-                    const stillNoKey = !(await aiStudio.hasSelectedApiKey());
-                    if (stillNoKey) return;
-                }
+                await aiStudio.openSelectKey();
+                const nowHasKey = await aiStudio.hasSelectedApiKey();
+                if (!nowHasKey) return;
             } catch (e) {
                 console.error("AI Studio Key Error:", e);
-                if (onOpenKeySelector) { onOpenKeySelector(); return; }
+                return;
             }
         } else {
-            if (onOpenKeySelector) { onOpenKeySelector(); return; }
+            setErrorMsg("API Key가 필요합니다. 설정에서 API Key를 입력해 주세요.");
+            return;
         }
     }
 

@@ -912,20 +912,20 @@ ${compositionSettings}
                              <h3 className="text-xs font-bold text-blue-400 uppercase mb-2">CORE STATS</h3>
                              <div className="grid grid-cols-2 gap-3">
                                  <div>
-                                     <label className="text-xs text-slate-500 block mb-1">Physique</label>
-                                     <select value={physique} onChange={(e) => setPhysique(e.target.value as Physique)} className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-sm">{Object.values(Physique).map(p => <option key={p} value={p}>{p}</option>)}</select>
-                                 </div>
-                                 <div>
-                                     <label className="text-xs text-slate-500 block mb-1">Height (cm)</label>
-                                     <input type="number" min={MIN_HEIGHT} max={MAX_HEIGHT} value={height} onChange={(e) => setHeight(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-sm" />
-                                 </div>
-                                 <div>
                                      <label className="text-xs text-slate-500 block mb-1">Gender</label>
                                      <select value={gender} onChange={(e) => setGender(e.target.value as Gender)} className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-sm">{Object.values(Gender).map(g => <option key={g} value={g}>{g}</option>)}</select>
                                  </div>
                                  <div>
                                      <label className="text-xs text-slate-500 block mb-1">Ethnicity</label>
                                      <select value={ethnicity} onChange={(e) => setEthnicity(e.target.value as Ethnicity)} className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-sm">{Object.values(Ethnicity).map(e => <option key={e} value={e}>{e}</option>)}</select>
+                                 </div>
+                                 <div>
+                                     <label className="text-xs text-slate-500 block mb-1">Physique</label>
+                                     <select value={physique} onChange={(e) => setPhysique(e.target.value as Physique)} className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-sm">{Object.values(Physique).map(p => <option key={p} value={p}>{p}</option>)}</select>
+                                 </div>
+                                 <div>
+                                     <label className="text-xs text-slate-500 block mb-1">Height (cm)</label>
+                                     <input type="number" min={MIN_HEIGHT} max={MAX_HEIGHT} value={height} onChange={(e) => setHeight(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-sm" />
                                  </div>
                              </div>
                         </div>

@@ -1,0 +1,5 @@
+{
+  "name": "FashionSynth Studio",
+  "description": "25.12.05\n- 여성 모델 얼굴 크기 정밀 튜닝: 기존 대비 6% 추가 축소 (총 16% 축소, 1:12 ratio 적용)\n- 남녀 공통 1:12 극소두 비율 통일로 패션 화보 퀄리티 극대화\n- 허리선 및 전신 샷 발 잘림 방지 로직 유지",
+  "requestFramePermissions": []
+}

@@ -26,10 +26,13 @@ const getClient = () => {
   // 1. Check for manually entered key in localStorage
   const customKey = typeof window !== 'undefined' ? localStorage.getItem('custom_gemini_api_key') : null;
   
-  // 2. Check for environment key
+  // 2. Check for environment key (Vite style for client-side)
+  const viteKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.VITE_API_KEY;
+  
+  // 3. Check for process.env (AI Studio style)
   const envKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
   
-  const key = customKey || envKey;
+  const key = customKey || viteKey || envKey;
   
   if (!key) throw new Error("API Key not found. Please set your API key in the header.");
   return new GoogleGenAI({ apiKey: key });
@@ -42,10 +45,14 @@ export const validateApiKey = async (key: string): Promise<boolean> => {
     return false;
   }
   
+  // Basic format check for Gemini keys
+  if (!trimmedKey.startsWith('AIzaSy')) {
+    console.warn("[API Validation] Key does not start with AIzaSy.");
+    return false;
+  }
+  
   try {
     // [STRICTEST CHECK] Bypass SDK and call Google's API endpoint directly via fetch.
-    // This ensures no caching or environment variable fallback occurs.
-    // We add a timestamp to prevent browser-level caching of previous results.
     const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${trimmedKey}&t=${Date.now()}`;
     
     console.log("[API Validation] Sending direct request to Google API...");
@@ -53,22 +60,36 @@ export const validateApiKey = async (key: string): Promise<boolean> => {
     
     if (response.status === 200) {
       const data = await response.json();
-      // Ensure we actually got a list of models back
       if (data && data.models && data.models.length > 0) {
         console.log("[API Validation] Success: Google server confirmed key is valid.");
         return true;
       }
-      console.warn("[API Validation] Success response but no models found.");
       return false;
     } else {
-      // If status is not 200, the key is definitely invalid or restricted.
       const errorData = await response.json().catch(() => ({}));
       console.error(`[API Validation] Denied by Google (Status: ${response.status}):`, errorData);
+      
+      // If it's a 403 or 400, the key is definitely invalid.
+      if (response.status === 403 || response.status === 400) {
+        return false;
+      }
+      
+      // For other statuses (like 500s or 429s), we might want to be more lenient 
+      // if the key looks correct, but for now we'll stick to strict validation.
       return false;
     }
   } catch (error: any) {
     console.error("[API Validation] Network/CORS Error during validation:", error.message || error);
-    // In case of network error, we don't allow access
+    
+    // [HEURISTIC FALLBACK]
+    // If it's a network error (like CORS or offline), and the key looks like a Gemini key,
+    // we might want to allow it because the validation itself might be blocked by the environment.
+    // This is common on some deployment platforms or restricted networks.
+    if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
+      console.warn("[API Validation] Network error detected. Falling back to format-only validation.");
+      return trimmedKey.startsWith('AIzaSy') && trimmedKey.length >= 35;
+    }
+    
     return false;
   }
 };

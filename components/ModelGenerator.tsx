@@ -5,7 +5,7 @@ import {
     GenerationHistoryItem, ModelViewType, ModelAngle, ReferenceWeight,
     ReferenceImage
 } from '../types';
-import { generateFashionModelStep, analyzeBackgroundImage, analyzeFaceFeatures, generatePromptVariation, analyzeFaceDNA, analyzeComposition, analyzePoseStructure } from '../services/geminiService';
+import { generateFashionModelStep, analyzeBackgroundImage, analyzeFaceFeatures, generatePromptVariation, analyzeFaceDNA, analyzeComposition, analyzePoseStructure, hasAnyApiKey } from '../services/geminiService';
 import { saveImageToLocal, softDeleteImage, deleteMultipleImages } from '../services/localDb';
 import { DEFAULT_HEIGHT, MIN_HEIGHT, MAX_HEIGHT, DEFAULT_FEMALE_HEIGHT, DEFAULT_MALE_HEIGHT } from '../constants';
 import { 
@@ -549,7 +549,7 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
       if (!window.confirm(`선택한 ${selectedIds.size}개의 이미지를 휴지통으로 이동하시겠습니까?`)) return;
 
       setIsDeleting(true);
-      const allItems = [...currentSessionImages, ...step1History, ...step2History, ...step3History].filter(i => i && !('type' in i)) as GenerationHistoryItem[];
+      const allItems = [...currentSessionImages, ...step1History, ...step2History, ...step3History].filter(i => !('type' in i)) as GenerationHistoryItem[];
       const itemsToDelete = allItems.filter(item => selectedIds.has(item.id));
       const updateList = (list: GenerationHistoryItem[]) => list.filter(item => !selectedIds.has(item.id));
       
@@ -575,7 +575,7 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
     
     // For session images, we need to handle the mix of types
     setCurrentSessionImages(prev => prev.map(item => {
-        if (item && !('type' in item) && item.id === stableId) {
+        if (!('type' in item) && item.id === stableId) {
             return { ...item, ...updates };
         }
         return item;
@@ -587,25 +587,28 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
   };
 
   const handleGenerate = async () => {
-    // Improved API Key Check
-    const customKey = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
-    if (!customKey) {
+    // Improved API Key Check using centralized helper
+    const hasKey = await hasAnyApiKey();
+    if (!hasKey) {
+        if (onOpenKeySelector) { 
+            onOpenKeySelector(); 
+            return; 
+        }
+        
+        // Fallback to AI Studio if available
         const aiStudio = (window as any).aistudio || (window.parent as any).aistudio;
-        if (aiStudio && aiStudio.hasSelectedApiKey) {
+        if (aiStudio && aiStudio.openSelectKey) {
             try {
-                const hasKey = await aiStudio.hasSelectedApiKey();
-                if (!hasKey) {
-                    await aiStudio.openSelectKey();
-                    // If still no key after prompt, return
-                    const stillNoKey = !(await aiStudio.hasSelectedApiKey());
-                    if (stillNoKey) return;
-                }
+                await aiStudio.openSelectKey();
+                const nowHasKey = await aiStudio.hasSelectedApiKey();
+                if (!nowHasKey) return;
             } catch (e) {
                 console.error("AI Studio Key Error:", e);
-                if (onOpenKeySelector) { onOpenKeySelector(); return; }
+                return;
             }
         } else {
-            if (onOpenKeySelector) { onOpenKeySelector(); return; }
+            setError("API Key가 필요합니다. 설정에서 API Key를 입력해 주세요.");
+            return;
         }
     }
 
@@ -846,7 +849,7 @@ ${compositionSettings}
 
   const getCurrentHistoryList = () => {
       // In-session images come first (placeholders or real)
-      const session = currentSessionImages.filter(i => i && !('type' in i)) as GenerationHistoryItem[];
+      const session = currentSessionImages.filter(i => !('type' in i)) as GenerationHistoryItem[];
       return session.concat(getHistoryForStep(currentStep));
   };
 
@@ -1382,7 +1385,7 @@ ${compositionSettings}
                 )}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {displayItems.map((item: any, idx) => { 
-                        if (item && 'type' in item && item.type === 'placeholder') return (
+                        if ('type' in item && item.type === 'placeholder') return (
                             <div key={item.id} className="aspect-[3/4] bg-slate-800 rounded-xl overflow-hidden border border-slate-700 animate-pulse relative">
                                 <div className="absolute inset-0 bg-slate-700/50 backdrop-blur-xl flex flex-col items-center justify-center gap-3">
                                     <Loader2 className="animate-spin text-blue-500" size={32} />

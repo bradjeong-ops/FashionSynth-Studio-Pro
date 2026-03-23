@@ -194,40 +194,41 @@ const App: React.FC = () => {
       {/* Main App content - Always rendered but content depends on userId */}
       <div className={`flex h-full w-full flex-col transition-opacity duration-1000 ${showIntro ? 'opacity-0' : 'opacity-100'}`}>
          {/* Header with Tabs */}
-         <div className="h-14 bg-[#1e293b]/90 backdrop-blur-md border-b border-slate-700 flex items-center px-6 justify-between z-50 shrink-0 relative">
-           <div className="flex items-center gap-3">
+         <div className="h-14 bg-[#1e293b]/90 backdrop-blur-md border-b border-slate-700 flex items-center px-6 z-50 shrink-0">
+           {/* Left Title */}
+           <div className="flex-1 flex items-center gap-3">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-900/50">FS</div>
-              <h1 className="font-bold text-lg text-white">FashionSynth Studio</h1>
+              <h1 className="font-bold text-lg text-white hidden sm:block">FashionSynth Studio</h1>
            </div>
 
            {/* Centered Tabs */}
-           <div className="absolute left-1/2 -translate-x-1/2 flex bg-slate-900/60 p-1.5 rounded-xl border border-slate-700/50 backdrop-blur-sm shadow-inner">
+           <div className="flex bg-slate-900/60 p-1.5 rounded-xl border border-slate-700/50 backdrop-blur-sm shadow-inner">
               <button
                   onClick={() => setActiveTab('MODEL_GEN')}
-                  className={`px-5 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all duration-200 ${activeTab === 'MODEL_GEN' ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                  className={`px-3 md:px-5 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all duration-200 ${activeTab === 'MODEL_GEN' ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                  <User size={16} /> 모델생성
+                  <User size={16} /> <span className="hidden md:inline">모델생성</span>
               </button>
               <button
                   onClick={() => setActiveTab('OUTFIT_TRYON')}
-                  className={`px-5 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all duration-200 ${activeTab === 'OUTFIT_TRYON' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                  className={`px-3 md:px-5 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all duration-200 ${activeTab === 'OUTFIT_TRYON' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                  <Shirt size={16} /> 의상착용
+                  <Shirt size={16} /> <span className="hidden md:inline">의상착용</span>
               </button>
               <button
                   onClick={() => setActiveTab('GALLERY')}
-                  className={`px-5 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all duration-200 ${activeTab === 'GALLERY' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                  className={`px-3 md:px-5 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all duration-200 ${activeTab === 'GALLERY' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                  <ImageIcon size={16} /> 갤러리
+                  <ImageIcon size={16} /> <span className="hidden md:inline">갤러리</span>
               </button>
            </div>
 
            {/* Right Actions */}
-           <div className="flex items-center gap-4">
+           <div className="flex-1 flex items-center justify-end gap-2 md:gap-4">
               {/* API Key Button */}
               <div 
                 onClick={handleOpenKeySelector}
-                className={`text-[10px] font-black flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
+                className={`text-[10px] font-black flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
                   hasApiKey 
                     ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/20' 
                     : 'text-slate-400 bg-white/5 border-white/10 hover:bg-white/10'
@@ -235,20 +236,20 @@ const App: React.FC = () => {
                 title={hasApiKey ? "Change API Key" : "Connect API Key for Pro Models"}
               >
                 {hasApiKey ? (
-                  <><Key size={14} className="text-indigo-400" /> PRO MODEL ACTIVE</>
+                  <><Key size={14} className="text-indigo-400" /> <span className="hidden lg:inline">PRO MODEL ACTIVE</span></>
                 ) : (
-                  <><Key size={14} className="text-slate-400" /> CONNECT API KEY</>
+                  <><Key size={14} className="text-slate-400" /> <span className="hidden lg:inline">CONNECT API KEY</span></>
                 )}
               </div>
 
               {/* Guest Badge */}
               <div 
                 onClick={handleGuestBadgeClick} 
-                className="text-[10px] font-black text-slate-400 flex items-center gap-2 bg-white/5 px-4 py-2 rounded-lg border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                className="text-[10px] font-black text-slate-400 flex items-center gap-2 bg-white/5 px-3 md:px-4 py-2 rounded-lg border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
                 title="Click to change Guest PIN"
               >
                   <User size={14} className="text-indigo-400" />
-                  <span>GUEST: {userId || '....'}</span>
+                  <span className="hidden sm:inline">GUEST: {userId || '....'}</span>
               </div>
            </div>
          </div>

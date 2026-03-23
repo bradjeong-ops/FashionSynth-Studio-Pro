@@ -205,11 +205,11 @@ export const generateFashionModelStep = async (
   
   let viewConstraint = "";
   if (config.viewType === 'FULL_BODY') {
-    viewConstraint = "(CRITICAL) FULL LENGTH SHOT. Show head to toe. WHITE LEATHER SNEAKERS MUST BE FULLY VISIBLE. (MANDATORY) Leave 10% empty space at the bottom of the frame below the shoes AND 10% empty space at the top of the frame above the head. NO CROPPING OF HEAD OR FEET.";
+    viewConstraint = "(ABSOLUTE CRITICAL) FULL LENGTH DISTANT SHOT. MUST SHOW THE ENTIRE BODY FROM TOP OF HAIR TO THE SOLES OF THE SHOES. NO CROPPING AT ALL. (MANDATORY) Leave 10% empty space at the bottom of the frame below the shoes AND 10% empty space at the top of the frame above the head. WHITE LEATHER SNEAKERS MUST BE FULLY VISIBLE. THE MODEL SHOULD BE CENTERED AND OCCUPY THE FULL HEIGHT OF THE FRAME MINUS PADDING.";
   } else if (config.viewType === 'UPPER_BODY') {
-    viewConstraint = "UPPER BODY SHOT. Focus from waist to head.";
+    viewConstraint = "(ABSOLUTE CRITICAL) UPPER BODY MEDIUM SHOT. Focus ONLY from mid-thigh to head. (MANDATORY) NO LEGS, NO FEET, NO SHOES visible. The shot must end at the mid-thigh or waist. DO NOT GENERATE A FULL BODY SHOT. DO NOT ZOOM IN TOO MUCH ON THE FACE; ensure the upper garment is clearly visible from waist up.";
   } else if (config.viewType === 'FACE_ZOOM') {
-    viewConstraint = "(ABSOLUTE CRITICAL) EXTREME CLOSE-UP HEADSHOT. Focus ONLY on the head and shoulders. The face should occupy 60-70% of the frame. (MANDATORY) NO WAIST, NO HIPS, NO LEGS visible. Professional portrait framing. Centered composition, looking directly at the camera, neutral studio background. (CRITICAL) Maintain the exact 3:4 aspect ratio framing of a professional headshot.";
+    viewConstraint = "(ABSOLUTE CRITICAL) PROFESSIONAL HEADSHOT. Focus ONLY on the head and shoulders. The face should occupy 35-45% of the frame height (balanced portrait framing). (MANDATORY) NO WAIST, NO HIPS, NO LEGS visible. Professional portrait framing with balanced head space at the top. Centered composition, looking directly at the camera, neutral studio background. (CRITICAL) Maintain the exact 3:4 aspect ratio framing of a professional headshot.";
   }
 
   const isMale = config.gender === 'Male';
@@ -252,6 +252,7 @@ export const generateFashionModelStep = async (
 [PROPORTION LOCK - FACE FOCUS V9.5]
 - ETHNICITY: ${config.ethnicity}
 - FACE STRUCTURE: (MANDATORY) Shortest compact chin and jawline. No long faces.
+- FACE SIZE: (CRITICAL) Standard professional portrait framing. The face is centered and occupies about 40% of the frame height.
 - SHOULDERS: ${isMale ? 'Broad Square Horizontal Shoulders' : 'Elegant high-set shoulders'}.
 - BACKGROUND: Pure white studio with professional lighting.
 `
@@ -260,9 +261,9 @@ export const generateFashionModelStep = async (
 - ETHNICITY: ${config.ethnicity}
 - PHYSIQUE: ${config.physique} (${physiqueInstruction})
 - HEIGHT: ${config.height}cm
-- RATIO: (MANDATORY) 1:15 to 1:18 head-to-body height ratio. 
+- RATIO: (ABSOLUTE MANDATORY) 1:15 to 1:18 head-to-body height ratio. The head must be very small relative to the body to emphasize ultra-long legs.
 - WIDTH RULE: (CRITICAL) Shoulder width must be exactly ${isMale ? '3.5' : '2.8'} times the head width.
-- HEAD SIZE: Super-micro head aesthetic.
+- HEAD SIZE: Super-micro head aesthetic. The face should appear small and refined.
 - UPPER BODY: ${config.physique === 'Athletic' ? 'Toned and defined' : 'Sleek and elegant'} frame. NOT bulky.
 - FACE STRUCTURE: (MANDATORY) Shortest compact chin and jawline. No long faces.
 - WAIST: (MANDATORY) Extreme raised waistline (+3cm higher than navel).
@@ -415,6 +416,7 @@ ${HIGH_QUALITY_PROMPT}
 [POSE]: ${finalPosePrompt}. ${skeletalMappingInstruction}
 (MANDATORY) MAINTAIN THE EXACT OUTFIT, FACE, AND HAIR FROM IMAGE ${sourceIdx}.${faceConsistencyPrompt}
 (STRICT PIXEL-PERFECT FIDELITY: The output MUST match the exact sharpness, skin texture density, fabric detail, and NATURAL COLOR TONE of Image 1. DO NOT increase saturation or vibrance. Ensure 1:1 clarity and color reproduction. (CRITICAL EYE POSITIONING): Ensure the iris is centered naturally. NO sanpaku eyes. NO visible white space below or above the iris unless looking up/down. Maintain ultra-sharp focus on the entire body.)
+${viewConstraint}
 ${proportionPrompt} 
 ${HIGH_QUALITY_PROMPT}
 `;

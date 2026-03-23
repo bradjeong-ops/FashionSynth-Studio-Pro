@@ -78,10 +78,15 @@ const App: React.FC = () => {
         const aistudio = (window as any).aistudio;
         const selected = await aistudio?.hasSelectedApiKey();
         const customKey = localStorage.getItem('custom_gemini_api_key');
-        setHasApiKey(selected || !!customKey);
+        
+        // Also check for environment variables if available (Vite style)
+        const envKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.VITE_API_KEY;
+        
+        setHasApiKey(selected || !!customKey || !!envKey);
       } catch (e) {
         const customKey = localStorage.getItem('custom_gemini_api_key');
-        setHasApiKey(!!customKey);
+        const envKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.VITE_API_KEY;
+        setHasApiKey(!!customKey || !!envKey);
       } finally {
         setIsCheckingKey(false);
       }
@@ -169,17 +174,6 @@ const App: React.FC = () => {
       } finally {
           setIsProcessingTransfer(false);
       }
-  };
-
-  const urlToBase64 = async (url: string) => {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
   };
 
   return (

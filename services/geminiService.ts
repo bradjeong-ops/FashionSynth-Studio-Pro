@@ -3,28 +3,11 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ModelConfig, ModelGenerationStep, ReferenceImage, DeepScanType, DeepScanResult, Physique, ImageResolution } from "../types";
 import { COMMON_NEGATIVE_PROMPT, MALE_NEGATIVE_PROMPT, FEMALE_NEGATIVE_PROMPT, BODY_RATIO_PROMPT, HIGH_QUALITY_PROMPT, DEFAULT_FEMALE_OUTFIT, DEFAULT_MALE_OUTFIT, IDENTITY_LOCK_INSTRUCTION } from "../constants";
 
-const ensureApiKey = async () => {
-  // 1. Check for manually entered key in localStorage
-  const customKey = typeof window !== 'undefined' ? localStorage.getItem('custom_gemini_api_key') : null;
-  if (customKey) return;
+export const getApiKey = () => {
+  if (typeof window === 'undefined') return process.env.API_KEY || process.env.GEMINI_API_KEY;
 
-  // 2. Check for environment key (if we want to allow fallback, but user wants to enforce personal key)
-  // For now, if we are in AI Studio, try to open the selector
-  try {
-    const aiStudio = (window as any).aistudio || (window.parent as any).aistudio;
-    if (aiStudio && aiStudio.hasSelectedApiKey) {
-      if (!(await aiStudio.hasSelectedApiKey())) {
-        await aiStudio.openSelectKey();
-      }
-    }
-  } catch (e) {
-    console.warn("API Key Selection UI not available in this context.");
-  }
-};
-
-const getClient = () => {
-  // 1. Check for manually entered key in localStorage
-  const customKey = typeof window !== 'undefined' ? localStorage.getItem('custom_gemini_api_key') : null;
+  // 1. Check for manually entered key in localStorage (support both cases for compatibility)
+  const customKey = localStorage.getItem('custom_gemini_api_key') || localStorage.getItem('CUSTOM_GEMINI_API_KEY');
   
   // 2. Check for environment key (Vite style for client-side)
   const viteKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.VITE_API_KEY;
@@ -32,7 +15,42 @@ const getClient = () => {
   // 3. Check for process.env (AI Studio style)
   const envKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
   
-  const key = customKey || viteKey || envKey;
+  return customKey || viteKey || envKey;
+};
+
+export const hasAnyApiKey = async (): Promise<boolean> => {
+  // 1. Check local/env sources
+  if (getApiKey()) return true;
+
+  // 2. Check AI Studio source
+  try {
+    const aiStudio = (window as any).aistudio || (window.parent as any).aistudio;
+    if (aiStudio && aiStudio.hasSelectedApiKey) {
+      return await aiStudio.hasSelectedApiKey();
+    }
+  } catch (e) {
+    console.warn("AI Studio Key check failed:", e);
+  }
+
+  return false;
+};
+
+const ensureApiKey = async () => {
+  if (await hasAnyApiKey()) return;
+
+  // If we are in AI Studio, try to open the selector
+  try {
+    const aiStudio = (window as any).aistudio || (window.parent as any).aistudio;
+    if (aiStudio && aiStudio.openSelectKey) {
+      await aiStudio.openSelectKey();
+    }
+  } catch (e) {
+    console.warn("API Key Selection UI not available in this context.");
+  }
+};
+
+const getClient = () => {
+  const key = getApiKey();
   
   if (!key) throw new Error("API Key not found. Please set your API key in the header.");
   return new GoogleGenAI({ apiKey: key });

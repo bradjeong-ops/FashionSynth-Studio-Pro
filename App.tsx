@@ -7,6 +7,7 @@ import Gallery from './components/Gallery';
 import { ModelGenerationStep } from './types';
 import IntroScreen from './components/IntroScreen';
 import GuestLoginModal from './components/GuestLoginModal';
+import { hasAnyApiKey, getApiKey } from './services/geminiService';
 
 export interface ModelTransferPayload {
   image: string; // base64
@@ -75,18 +76,11 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkKey = async () => {
       try {
-        const aistudio = (window as any).aistudio;
-        const selected = await aistudio?.hasSelectedApiKey();
-        const customKey = localStorage.getItem('custom_gemini_api_key');
-        
-        // Also check for environment variables if available (Vite style)
-        const envKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.VITE_API_KEY;
-        
-        setHasApiKey(selected || !!customKey || !!envKey);
+        const hasKey = await hasAnyApiKey();
+        setHasApiKey(hasKey);
       } catch (e) {
-        const customKey = localStorage.getItem('custom_gemini_api_key');
-        const envKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.VITE_API_KEY;
-        setHasApiKey(!!customKey || !!envKey);
+        console.error("API Key check failed", e);
+        setHasApiKey(false);
       } finally {
         setIsCheckingKey(false);
       }
@@ -106,25 +100,31 @@ const App: React.FC = () => {
     setUserId(pin);
     setShowLoginModal(false);
     
-    const customKey = localStorage.getItem('custom_gemini_api_key');
-    if (customKey) {
+    // Check if we have an API key now (could have been entered in the modal)
+    const key = getApiKey();
+    if (key) {
       setHasApiKey(true);
     }
   };
 
   const handleOpenKeySelector = async () => {
-    const customKey = localStorage.getItem('custom_gemini_api_key');
+    // If we already have a custom key, just show the modal to edit it
+    const customKey = localStorage.getItem('custom_gemini_api_key') || localStorage.getItem('CUSTOM_GEMINI_API_KEY');
     if (customKey) {
       setModalMode('key');
       setShowLoginModal(true);
       return;
     }
 
+    // Otherwise, try AI Studio selector first
     try {
-      const aistudio = (window as any).aistudio;
+      const aistudio = (window as any).aistudio || (window.parent as any).aistudio;
       if (aistudio?.openSelectKey) {
         await aistudio.openSelectKey();
-        setHasApiKey(true);
+        const hasKeyNow = await aistudio.hasSelectedApiKey();
+        if (hasKeyNow) {
+          setHasApiKey(true);
+        }
       } else {
         throw new Error("AI Studio API not available");
       }

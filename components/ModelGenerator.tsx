@@ -362,8 +362,9 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
     setError(null);
     try {
       const base64 = faceRefImage.includes(',') ? faceRefImage.split(',')[1] : faceRefImage;
+      const stats = { gender, ethnicity, physique, height };
       const [features, dna] = await Promise.all([
-          analyzeFaceFeatures(faceRefImage),
+          analyzeFaceFeatures(faceRefImage, stats),
           analyzeFaceDNA(base64)
       ]);
       setFacePrompt(features.face);
@@ -395,10 +396,11 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
   const handleRandomFaceVariation = async () => {
     if (!facePrompt) return;
     const currentPrompt = facePrompt;
+    const stats = { gender, ethnicity, physique, height };
     setFacePrompt("");
     setIsVaryingFace(true);
     try {
-      const newPrompt = await generatePromptVariation(currentPrompt, 'face');
+      const newPrompt = await generatePromptVariation(currentPrompt, 'face', stats);
       setFacePrompt(newPrompt.trim());
       setShowFaceDetail(true);
     } catch (e) {
@@ -412,10 +414,11 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
   const handleRandomHairVariation = async () => {
     if (!hairPrompt) return;
     const currentPrompt = hairPrompt;
+    const stats = { gender, ethnicity, physique, height };
     setHairPrompt("");
     setIsVaryingHair(true);
     try {
-      const newPrompt = await generatePromptVariation(currentPrompt, 'hair');
+      const newPrompt = await generatePromptVariation(currentPrompt, 'hair', stats);
       setHairPrompt(newPrompt.trim());
       setShowHairDetail(true);
     } catch (e) {

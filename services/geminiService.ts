@@ -249,16 +249,16 @@ export const generateFashionModelStep = async (
   // Split calibration into Proportions and Outfit for better consistency control
   const proportionPrompt = config.viewType === 'FACE_ZOOM'
     ? `
-[PROPORTION LOCK - FACE FOCUS V9.5]
-- ETHNICITY: ${config.ethnicity}
+[PROPORTION LOCK - FACE FOCUS V9.6]
+- ETHNICITY: (ABSOLUTE MANDATORY) ${config.ethnicity}. The model MUST strictly appear as ${config.ethnicity}. NO other ethnic features allowed.
 - FACE STRUCTURE: (MANDATORY) Shortest compact chin and jawline. No long faces.
 - FACE SIZE: (CRITICAL) Standard professional portrait framing. The face is centered and occupies about 40% of the frame height.
 - SHOULDERS: ${isMale ? 'Broad Square Horizontal Shoulders' : 'Elegant high-set shoulders'}.
 - BACKGROUND: Pure white studio with professional lighting.
 `
     : `
-[PROPORTION LOCK - HEROIC ${isMale ? 'MALE' : 'FEMALE'} BALANCE V9.5]
-- ETHNICITY: ${config.ethnicity}
+[PROPORTION LOCK - HEROIC ${isMale ? 'MALE' : 'FEMALE'} BALANCE V9.6]
+- ETHNICITY: (ABSOLUTE MANDATORY) ${config.ethnicity}. The model MUST strictly appear as ${config.ethnicity}. NO other ethnic features allowed.
 - PHYSIQUE: ${config.physique} (${physiqueInstruction})
 - HEIGHT: ${config.height}cm
 - RATIO: (ABSOLUTE MANDATORY) 1:15 to 1:18 head-to-body height ratio. The head must be very small relative to the body to emphasize ultra-long legs.
@@ -319,11 +319,17 @@ export const generateFashionModelStep = async (
 
   if (config.step === ModelGenerationStep.STEP1_IDENTITY) {
       const prompt = `
+      # [STRICT IDENTITY LOCK V9.6]
+      - ETHNICITY: (ABSOLUTE MANDATORY) ${config.ethnicity}. The model MUST strictly appear as ${config.ethnicity}.
+      - GENDER: ${config.gender}
+      - PHYSIQUE: ${config.physique}
+      - HEIGHT: ${config.height}cm
+      - AGE: ${config.agePrompt || 'Young adult'}
+      
       # STYLE LOCK:
       - OUTFIT: ${config.bodyPrompt || (isMale ? DEFAULT_MALE_OUTFIT : DEFAULT_FEMALE_OUTFIT)}
       - FACE: ${config.facePrompt || 'Natural and professional'}
       - HAIR: ${config.hairPrompt || 'Neat and styled'}
-      - AGE: ${config.agePrompt || 'Young adult'}
       ${viewConstraint}
       ${proportionPrompt}
       ${outfitPrompt}
@@ -497,16 +503,24 @@ export const generateFashionImages = async (
 /**
  * [FIX]: Analyze face features (face and hair descriptions)
  */
-export const analyzeFaceFeatures = async (image: string): Promise<{ face: string; hair: string }> => {
+export const analyzeFaceFeatures = async (
+  image: string,
+  coreStats?: { gender: string; ethnicity: string; physique: string; height: number }
+): Promise<{ face: string; hair: string }> => {
   await ensureApiKey();
   const ai = getClient();
+  
+  const statsContext = coreStats 
+    ? `\n[CONTEXT]: The model is a ${coreStats.gender}, ${coreStats.ethnicity}, with a ${coreStats.physique} physique and ${coreStats.height}cm height. Ensure the description aligns with these traits.`
+    : "";
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: {
         parts: [
           fileToPart(image),
-          { text: "Analyze the face and hair of the person in the image. Provide a detailed description for both face and hair separately for a fashion model prompt." }
+          { text: `Analyze the face and hair of the person in the image. Provide a detailed description for both face and hair separately for a fashion model prompt. (CRITICAL): Focus on natural, realistic, and commercial-friendly hair styles. Avoid avant-garde, conceptual, or "hair design competition" descriptions.${statsContext}` }
         ]
       },
       config: {
@@ -539,7 +553,7 @@ export const analyzeFaceDNA = async (base64: string): Promise<{ gender: string; 
       contents: {
         parts: [
           fileToPart(base64),
-          { text: "Identify the gender, ethnicity, physique, and age of the person in this image for fashion cataloging." }
+          { text: "Identify the gender, ethnicity (be specific: e.g., White, Black, East Asian, South Asian, Hispanic), physique (Slim, Athletic, Curvy, Standard), and age of the person in this image for fashion cataloging. Provide the most accurate assessment based on visual features." }
         ]
       },
       config: {
@@ -642,13 +656,26 @@ export const analyzeComposition = async (image: string): Promise<string> => {
 /**
  * [FIX]: Generate slight variations of existing prompts
  */
-export const generatePromptVariation = async (prompt: string, type: 'face' | 'hair'): Promise<string> => {
+export const generatePromptVariation = async (
+  prompt: string, 
+  type: 'face' | 'hair',
+  coreStats?: { gender: string; ethnicity: string; physique: string; height: number }
+): Promise<string> => {
   await ensureApiKey();
   const ai = getClient();
+  
+  const statsContext = coreStats 
+    ? `\n[STRICT CONSTRAINT]: Maintain the identity of a ${coreStats.gender}, ${coreStats.ethnicity}, ${coreStats.physique} physique, ${coreStats.height}cm model.`
+    : "";
+
+  const instruction = type === 'hair'
+    ? `Generate a natural and realistic hairstyle description for a commercial fashion catalog. Avoid avant-garde, conceptual, or "hair design competition" styles. Focus on clean, wearable, and professional looks. Randomly choose from styles like: natural long waves, classic bob cut, simple sleek ponytail, straight silky hair, soft loose curls, neat low bun, or medium-length layered cut. Keep the colors natural (black, brown, blonde, etc.) and the styling polished but realistic. Original prompt for context: "${prompt}"`
+    : `Give me a slight variation of the following ${type} description for a fashion model, maintaining the core style but changing minor details for diversity: "${prompt}"`;
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Give me a slight variation of the following ${type} description for a fashion model, maintaining the core style but changing minor details for diversity: "${prompt}"`
+      contents: `${instruction}${statsContext}`
     });
     return response.text || prompt;
   } catch (err) {

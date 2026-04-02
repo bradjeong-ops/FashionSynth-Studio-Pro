@@ -205,7 +205,8 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const base64 = await resizeImageFile(file, 1024, 0.85);
+        // 2048 is more than enough for a face reference and ensures better compatibility with AI models
+        const base64 = await resizeImageFile(file, 2048, 0.95);
         setFaceRefImage(`data:image/jpeg;base64,${base64}`);
       } catch (err) {
         setError("이미지 처리 중 오류 발생");
@@ -217,7 +218,7 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const base64 = await resizeImageFile(file, 1024, 0.85);
+        const base64 = await resizeImageFile(file, 2048, 0.95);
         setPoseRefImage(`data:image/jpeg;base64,${base64}`);
       } catch (err) {
         setError("이미지 처리 중 오류 발생");
@@ -235,12 +236,12 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
     for (let i = 0; i < files.length; i++) {
         if (faceConsistencyImages.length + newImages.length >= 3) break;
         const file = files[i];
-        if (file.size > 10 * 1024 * 1024) {
-            setError("Each face reference image must be less than 10MB.");
+        if (file.size > 20 * 1024 * 1024) {
+            setError("Each face reference image must be less than 20MB.");
             continue;
         }
         try {
-            const base64 = await resizeImageFile(file, 1024, 0.85);
+            const base64 = await resizeImageFile(file, 2048, 0.95);
             newImages.push(`data:image/jpeg;base64,${base64}`);
         } catch (err) {
             console.error(err);
@@ -277,7 +278,7 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const base64 = await resizeImageFile(file, 4096, 0.95);
+        const base64 = await resizeImageFile(file, 2048, 0.95);
         setBackgroundReferenceImage(`data:image/jpeg;base64,${base64}`);
       } catch (err) {
         setError("이미지 처리 중 오류 발생");
@@ -291,7 +292,7 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const base64 = await resizeImageFile(file, 4096, 0.95);
+        const base64 = await resizeImageFile(file, 2048, 0.95);
         setStep1SelectedImage(`data:image/jpeg;base64,${base64}`);
         setIsStep1SourceExternal(true);
       } catch (err) {
@@ -304,7 +305,7 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const base64 = await resizeImageFile(file, 4096, 0.95);
+        const base64 = await resizeImageFile(file, 2048, 0.95);
         setStep2SelectedImage(`data:image/jpeg;base64,${base64}`);
         setIsStep2SourceExternal(true);
       } catch (err) {
@@ -740,10 +741,21 @@ ${compositionSettings}
         if (localStep === ModelGenerationStep.STEP3_POSE && !step2SelectedImage) throw new Error("Character source missing.");
 
         const usedReferences: string[] = [];
-        if (config.faceReferenceImage) usedReferences.push(config.faceReferenceImage);
-        if (config.sourceImage) usedReferences.push(config.sourceImage);
-        if (config.poseReferenceImage) usedReferences.push(config.poseReferenceImage);
-        if (config.backgroundReferenceImage) usedReferences.push(config.backgroundReferenceImage);
+        if (localStep === ModelGenerationStep.STEP1_IDENTITY) {
+            if (config.faceReferenceImage) usedReferences.push(config.faceReferenceImage);
+        } else if (localStep === ModelGenerationStep.STEP2_MULTIVIEW) {
+            if (config.sourceImage) usedReferences.push(config.sourceImage);
+        } else if (localStep === ModelGenerationStep.STEP3_POSE) {
+            // For Step 3, prioritize face consistency images if used
+            if (config.faceConsistencyImages && config.faceConsistencyImages.length > 0) {
+                usedReferences.push(...config.faceConsistencyImages);
+            }
+            // Then add the source image (character reference)
+            if (config.sourceImage) usedReferences.push(config.sourceImage);
+            // Then add pose and background references
+            if (config.poseReferenceImage) usedReferences.push(config.poseReferenceImage);
+            if (config.backgroundReferenceImage) usedReferences.push(config.backgroundReferenceImage);
+        }
 
         await generateFashionModelStep(
             config, 

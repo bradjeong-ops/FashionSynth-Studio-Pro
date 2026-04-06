@@ -121,6 +121,40 @@ const ModelGenerator: React.FC<ModelGeneratorProps> = ({ onSelectAsBaseModel, us
           setHeight(DEFAULT_FEMALE_HEIGHT);
       }
   }, [gender]);
+
+  // Handle incoming image transfer from Gallery
+  useEffect(() => {
+    if (transferPayload) {
+      const { image, targetStep } = transferPayload;
+      
+      if (targetStep === ModelGenerationStep.STEP2_MULTIVIEW) {
+        setStep1SelectedImage(image);
+        setIsStep1SourceExternal(true);
+        setCurrentStep(ModelGenerationStep.STEP2_MULTIVIEW);
+        // Clear Step 2 specific refs for a clean start from Gallery
+        setStep2RefImage(null);
+        setStep2Prompt('');
+        setStep2ActionPrompt('');
+      } else if (targetStep === ModelGenerationStep.STEP3_POSE) {
+        setStep2SelectedImage(image);
+        setIsStep2SourceExternal(true);
+        setStep2SourceHasStats(false); // External images don't have our core stats
+        setCurrentStep(ModelGenerationStep.STEP3_POSE);
+        // Clear Step 3 specific refs for a clean start from Gallery
+        setFaceConsistencyImages([]);
+        setPoseRefImage(null);
+        setPosePrompt('');
+        setBackgroundReferenceImage(null);
+        setBackgroundPrompt('');
+        setChangeBackground(false);
+      }
+      
+      // Consume the transfer
+      if (onTransferConsumed) {
+        onTransferConsumed();
+      }
+    }
+  }, [transferPayload, onTransferConsumed]);
   
   // --- Step 2 Inputs (Multi-View) ---
   const [step1SelectedImage, setStep1SelectedImage] = useState<string | null>(null); 
@@ -746,9 +780,9 @@ ${compositionSettings}
         } else if (localStep === ModelGenerationStep.STEP2_MULTIVIEW) {
             if (config.sourceImage) usedReferences.push(config.sourceImage);
         } else if (localStep === ModelGenerationStep.STEP3_POSE) {
-            // For Step 3, prioritize face consistency images if used
+            // For Step 3, prioritize face consistency images if used (newest first for comparison)
             if (config.faceConsistencyImages && config.faceConsistencyImages.length > 0) {
-                usedReferences.push(...config.faceConsistencyImages);
+                usedReferences.push(...[...config.faceConsistencyImages].reverse());
             }
             // Then add the source image (character reference)
             if (config.sourceImage) usedReferences.push(config.sourceImage);

@@ -172,7 +172,7 @@ export const synthesizeFashionDesign = async (images: ReferenceImage[], userInst
 - **FRAME**: Extra-Broad Square Horizontal Shoulders (직각 어깨).
 - **TUCK-IN**: (ABSOLUTE) Shirt must be deeply tucked into shorts.
 
-[USER INSTRUCTION]: "${userInstruction || "Replicate with 3.5:1 shoulder-to-head width ratio, sleek non-bulky upper body, ultra-long legs, high waist (+3cm), and shorter cotton shorts."}"
+[USER INSTRUCTION]: "${userInstruction || "Replicate with 3.5:1 shoulder-to-head width ratio, sleek non-bulky upper body, ultra-long legs (1:12 ratio), high waist (+3cm), and shorter cotton shorts."}"
 [OUTPUT]: Technical prompt starting with "[SYNTHESIZED DESIGN]:"
 `;
 
@@ -200,12 +200,12 @@ export const generateFashionModelStep = async (
 ) => {
   console.log("[GeminiService] generateFashionModelStep started", { step: config.step, angles: config.targetAngles });
   await ensureApiKey();
-  const modelName = 'gemini-3-pro-image-preview';
+  const modelName = 'gemini-3.1-flash-image-preview';
   const ai = getClient();
   
   let viewConstraint = "";
   if (config.viewType === 'FULL_BODY') {
-    viewConstraint = "(ABSOLUTE CRITICAL) FULL LENGTH DISTANT SHOT. MUST SHOW THE ENTIRE BODY FROM TOP OF HAIR TO THE SOLES OF THE SHOES. NO CROPPING AT ALL. (MANDATORY) Leave 10% empty space at the bottom of the frame below the shoes AND 10% empty space at the top of the frame above the head. WHITE LEATHER SNEAKERS MUST BE FULLY VISIBLE. THE MODEL SHOULD BE CENTERED AND OCCUPY THE FULL HEIGHT OF THE FRAME MINUS PADDING.";
+    viewConstraint = "(ABSOLUTE CRITICAL) FULL LENGTH DISTANT SHOT. MUST SHOW THE ENTIRE BODY FROM TOP OF HAIR TO THE SOLES OF THE SHOES. NO CROPPING AT ALL. (MANDATORY) Leave 10% empty space at the bottom of the frame below the shoes AND 10% empty space at the top of the frame above the head. WHITE LEATHER SNEAKERS MUST BE FULLY VISIBLE. THE MODEL SHOULD BE CENTERED AND OCCUPY THE FULL HEIGHT OF THE FRAME MINUS PADDING. (ULTRA-HIGH RESOLUTION:9.5), (MASTERPIECE:9.5), (8K RESOLUTION:9.5), (SHARP FOCUS:9.5)";
   } else if (config.viewType === 'UPPER_BODY') {
     viewConstraint = "(ABSOLUTE CRITICAL) UPPER BODY MEDIUM SHOT. Focus ONLY from mid-thigh to head. (MANDATORY) NO LEGS, NO FEET, NO SHOES visible. The shot must end at the mid-thigh or waist. DO NOT GENERATE A FULL BODY SHOT. DO NOT ZOOM IN TOO MUCH ON THE FACE; ensure the upper garment is clearly visible from waist up.";
   } else if (config.viewType === 'FACE_ZOOM') {
@@ -261,7 +261,7 @@ export const generateFashionModelStep = async (
 - ETHNICITY: (ABSOLUTE MANDATORY) ${config.ethnicity}. The model MUST strictly appear as ${config.ethnicity}. NO other ethnic features allowed.
 - PHYSIQUE: ${config.physique} (${physiqueInstruction})
 - HEIGHT: ${config.height}cm
-- RATIO: (ABSOLUTE MANDATORY) 1:15 to 1:18 head-to-body height ratio. The head must be very small relative to the body to emphasize ultra-long legs.
+- RATIO: (ABSOLUTE MANDATORY) 1:12 head-to-body height ratio. The head must be very small relative to the body to emphasize ultra-long legs.
 - WIDTH RULE: (CRITICAL) Shoulder width must be exactly ${isMale ? '3.5' : '2.8'} times the head width.
 - HEAD SIZE: Super-micro head aesthetic. The face should appear small and refined.
 - UPPER BODY: ${config.physique === 'Athletic' ? 'Toned and defined' : 'Sleek and elegant'} frame. NOT bulky.
@@ -291,7 +291,14 @@ export const generateFashionModelStep = async (
       aspectRatio: "3:4" as any,
       imageSize: config.resolution as any 
     },
-    tools: [{ googleSearch: {} }]
+    tools: [{ googleSearch: {} }],
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_ONLY_HIGH' }
+    ]
   };
 
   const executeGenerationTask = async (parts: any[], angle?: string) => {
@@ -320,6 +327,9 @@ export const generateFashionModelStep = async (
   if (config.step === ModelGenerationStep.STEP1_IDENTITY) {
       const prompt = `
       # [STRICT IDENTITY LOCK V9.6]
+      - (CRITICAL: PRESERVE REFERENCE DETAIL:9.5)
+      - (ULTRA-HIGH RESOLUTION:9.5)
+      - (SHARP FOCUS:9.5)
       - ETHNICITY: (ABSOLUTE MANDATORY) ${config.ethnicity}. The model MUST strictly appear as ${config.ethnicity}.
       - GENDER: ${config.gender}
       - PHYSIQUE: ${config.physique}
@@ -342,7 +352,7 @@ export const generateFashionModelStep = async (
           parts.push(fileToPart(config.faceReferenceImage));
           if (config.faceReferenceWeight) {
               const weightInstruction = config.faceReferenceWeight === 'HIGH' 
-                  ? "\n(CRITICAL: Use Image 2 as an EXACT ID reference. Replicate the face 1:1.)"
+                  ? "\n(CRITICAL: Use Image 2 as an EXACT ID reference. Replicate the face 1:1 with MAXIMUM FIDELITY. DO NOT lose any detail from the reference.)"
                   : config.faceReferenceWeight === 'MID'
                   ? "\n(STRICT: Use Image 2 as a strong similarity reference. The face should be very similar.)"
                   : "\n(STYLE: Use Image 2 only for general vibe and style. The face can be different.)";
@@ -449,7 +459,7 @@ export const generateFashionImages = async (
   aspectRatio: string = "3:4"
 ) => {
   await ensureApiKey();
-  const modelName = 'gemini-3-pro-image-preview';
+  const modelName = 'gemini-3.1-flash-image-preview';
   const ai = getClient();
 
   const finalPrompt = forcePro 
@@ -469,7 +479,14 @@ export const generateFashionImages = async (
                 aspectRatio: aspectRatio as any,
                 imageSize: resolution as any 
             },
-            tools: [{ googleSearch: {} }]
+            tools: [{ googleSearch: {} }],
+            safetySettings: [
+              { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+              { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+              { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+              { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+              { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_ONLY_HIGH' }
+            ]
         }
       });
 
@@ -511,7 +528,7 @@ export const analyzeFaceFeatures = async (
   const ai = getClient();
   
   const statsContext = coreStats 
-    ? `\n[CONTEXT]: The model is a ${coreStats.gender}, ${coreStats.ethnicity}, with a ${coreStats.physique} physique and ${coreStats.height}cm height. Ensure the description aligns with these traits.`
+    ? `\n[STRICT CONTEXT]: The model is a ${coreStats.gender}, ${coreStats.ethnicity}, with a ${coreStats.physique} physique and ${coreStats.height}cm height. (MANDATORY): The extracted description MUST strictly align with these core stats. If the image shows different traits, prioritize the provided core stats while describing the specific facial/hair details.`
     : "";
 
   try {
@@ -532,7 +549,14 @@ export const analyzeFaceFeatures = async (
             hair: { type: Type.STRING, description: "Detailed description of hair style and color" }
           },
           required: ["face", "hair"]
-        }
+        },
+        safetySettings: [
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_ONLY_HIGH' }
+        ]
       }
     });
     return JSON.parse(response.text || '{"face":"", "hair":""}');
@@ -567,7 +591,14 @@ export const analyzeFaceDNA = async (base64: string): Promise<{ gender: string; 
             age: { type: Type.NUMBER }
           },
           required: ["gender", "ethnicity", "physique", "age"]
-        }
+        },
+        safetySettings: [
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_ONLY_HIGH' }
+        ]
       }
     });
     return JSON.parse(response.text || '{"gender":"Female", "ethnicity":"Asian", "physique":"Slim", "age":24}');
@@ -600,6 +631,15 @@ CRITICAL RULES:
 - DO NOT describe the background, environment, colors, lighting, or clothing.
 - Focus ONLY on the physical pose, skeletal structure, and body angles.
 - Use technical language (e.g., "torso rotated 45 degrees", "weight shifted to left leg").` }
+        ]
+      },
+      config: {
+        safetySettings: [
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_ONLY_HIGH' }
         ]
       }
     });
@@ -665,12 +705,12 @@ export const generatePromptVariation = async (
   const ai = getClient();
   
   const statsContext = coreStats 
-    ? `\n[STRICT CONSTRAINT]: Maintain the identity of a ${coreStats.gender}, ${coreStats.ethnicity}, ${coreStats.physique} physique, ${coreStats.height}cm model.`
+    ? `\n[ABSOLUTE STRICT CONSTRAINT]: Maintain the identity of a ${coreStats.gender}, ${coreStats.ethnicity}, ${coreStats.physique} physique, ${coreStats.height}cm model. DO NOT change these core attributes under any circumstances.`
     : "";
 
   const instruction = type === 'hair'
     ? `Generate a natural and realistic hairstyle description for a commercial fashion catalog. Avoid avant-garde, conceptual, or "hair design competition" styles. Focus on clean, wearable, and professional looks. Randomly choose from styles like: natural long waves, classic bob cut, simple sleek ponytail, straight silky hair, soft loose curls, neat low bun, or medium-length layered cut. Keep the colors natural (black, brown, blonde, etc.) and the styling polished but realistic. Original prompt for context: "${prompt}"`
-    : `Give me a slight variation of the following ${type} description for a fashion model, maintaining the core style but changing minor details for diversity: "${prompt}"`;
+    : `Give me a slight variation of the following ${type} description for a fashion model, maintaining the core style but changing minor details for diversity. Ensure the variation remains strictly within the bounds of a professional fashion model: "${prompt}"`;
 
   try {
     const response = await ai.models.generateContent({
